@@ -6,11 +6,23 @@
         body {
             background: #111;
             color: white;
-            text-align: center;
             font-family: Arial, sans-serif;
+            margin: 0;
+            text-align: center;
         }
 
         h1 {
+            margin-top: 20px;
+        }
+
+        #topbar {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
             margin-top: 20px;
         }
 
@@ -19,8 +31,6 @@
             grid-template-columns: repeat(15, 40px);
             grid-template-rows: repeat(15, 40px);
             gap: 2px;
-            justify-content: center;
-            margin-top: 20px;
         }
 
         .flower {
@@ -31,12 +41,17 @@
         }
 
         .empty {
-            background: #222;
+            background: #222 !important;
             cursor: default;
         }
 
-        #controls {
-            margin-top: 20px;
+        #sidebar {
+            width: 280px;
+            margin-left: 30px;
+            padding: 15px;
+            background: #1b1b1b;
+            border-radius: 8px;
+            text-align: left;
         }
 
         button {
@@ -52,32 +67,79 @@
         button:hover {
             background: #555;
         }
+
+        #controls {
+            margin-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        .upgrade {
+            margin-top: 10px;
+            padding: 8px;
+            background: #222;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
 
 <h1>The Flower Game 🌼</h1>
-<div id="game"></div>
+
+<div id="topbar">
+    🌸 Flowers: <span id="flowers">0</span>
+</div>
+
+<div class="container">
+    <div id="game"></div>
+
+    <div id="sidebar">
+        <h2>🌸 About</h2>
+        <p>
+            Harvest flowers to earn more flowers.<br>
+            Mutations give bonus flowers and spread to nearby plants.
+        </p>
+
+        <h2>⬆ Upgrades</h2>
+
+        <div class="upgrade">
+            Mutation Chance (+5%)<br>
+            Cost: <span id="mutCost">50</span> 🌸<br>
+            <button onclick="buyMutation()">Buy</button>
+        </div>
+
+        <div class="upgrade">
+            Spread Range (+1)<br>
+            Cost: <span id="spreadCost">75</span> 🌸<br>
+            <button onclick="buySpread()">Buy</button>
+        </div>
+    </div>
+</div>
 
 <div id="controls">
     <button onclick="setPattern('sweden')">Sweden</button>
     <button onclick="setPattern('france')">France</button>
     <button onclick="setPattern('germany')">Germany</button>
-    <button onclick="setPattern('japan')">Japan</button>
-    <button onclick="setPattern('italy')">Italy</button>
-    <button onclick="setPattern('poland')">Poland</button>
-    <button onclick="setPattern('ukraine')">Ukraine</button>
-    <button onclick="setPattern('norway')">Norway</button>
+    <button onclick="setPattern('random')">🎲 Randomizer</button>
 </div>
 
 <script>
 const size = 15;
-const mutationChance = 0.15;
+let mutationChance = 0.15;
+let spreadRange = 1;
 const cooldownTime = 2000;
-const spreadRange = 1;
+
+let flowers = 0;
+let mutationCost = 50;
+let spreadCost = 75;
 
 const game = document.getElementById("game");
 let grid = [];
+
+function updateUI() {
+    document.getElementById("flowers").textContent = flowers;
+    document.getElementById("mutCost").textContent = mutationCost;
+    document.getElementById("spreadCost").textContent = spreadCost;
+}
 
 function createEmptyGrid() {
     game.innerHTML = "";
@@ -94,7 +156,8 @@ function createEmptyGrid() {
             grid[y][x] = {
                 element: div,
                 color: "#000",
-                alive: true
+                alive: true,
+                mutated: false
             };
         }
     }
@@ -105,60 +168,29 @@ function setPattern(type) {
 
     for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
+
             let color = "#000";
 
-            switch(type) {
-                case "sweden":
-                    color = "#005293";
-                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
-                        color = "#FECB00";
-                    break;
+            if (type === "sweden") {
+                color = "#005293";
+                if (x === Math.floor(size/2) || y === Math.floor(size/2))
+                    color = "#FECB00";
+            }
 
-                case "france":
-                    if (x < size/3) color = "#0055A4";
-                    else if (x < 2*size/3) color = "#FFFFFF";
-                    else color = "#EF4135";
-                    break;
+            if (type === "france") {
+                if (x < size/3) color = "#0055A4";
+                else if (x < 2*size/3) color = "#FFFFFF";
+                else color = "#EF4135";
+            }
 
-                case "germany":
-                    if (y < size/3) color = "#000000";
-                    else if (y < 2*size/3) color = "#DD0000";
-                    else color = "#FFCE00";
-                    break;
+            if (type === "germany") {
+                if (y < size/3) color = "#000000";
+                else if (y < 2*size/3) color = "#DD0000";
+                else color = "#FFCE00";
+            }
 
-                case "japan":
-                    color = "#FFFFFF";
-                    let center = size/2;
-                    let dx = x - center;
-                    let dy = y - center;
-                    if (dx*dx + dy*dy < 16)
-                        color = "#BC002D";
-                    break;
-
-                case "italy":
-                    if (x < size/3) color = "#009246";
-                    else if (x < 2*size/3) color = "#FFFFFF";
-                    else color = "#CE2B37";
-                    break;
-
-                case "poland":
-                    if (y < size/2) color = "#FFFFFF";
-                    else color = "#DC143C";
-                    break;
-
-                case "ukraine":
-                    if (y < size/2) color = "#0057B7";
-                    else color = "#FFD700";
-                    break;
-
-                case "norway":
-                    color = "#BA0C2F";
-                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
-                        color = "#FFFFFF";
-                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
-                        if (x === Math.floor(size/2) || y === Math.floor(size/2))
-                            color = "#00205B";
-                    break;
+            if (type === "random") {
+                color = randomColor();
             }
 
             grid[y][x].color = color;
@@ -175,6 +207,10 @@ function harvest(x, y) {
     cell.element.classList.add("empty");
     cell.element.style.background = "#222";
 
+    let earned = cell.mutated ? 5 : 1;
+    flowers += earned;
+    updateUI();
+
     setTimeout(() => regrow(x, y), cooldownTime);
 }
 
@@ -183,13 +219,16 @@ function regrow(x, y) {
     cell.alive = true;
 
     let newColor = cell.color;
+    let mutated = false;
 
     if (Math.random() < mutationChance) {
         newColor = randomColor();
+        mutated = true;
         spreadMutation(x, y, newColor);
     }
 
     cell.color = newColor;
+    cell.mutated = mutated;
     cell.element.classList.remove("empty");
     cell.element.style.background = newColor;
 }
@@ -201,7 +240,9 @@ function randomColor() {
         "#4d4dff",
         "#ff66ff",
         "#66ffff",
-        "#ffa64d"
+        "#ffa64d",
+        "#ffd700",
+        "#00ffcc"
     ];
     return colors[Math.floor(Math.random() * colors.length)];
 }
@@ -216,6 +257,7 @@ function spreadMutation(x, y, color) {
                 const neighbor = grid[ny][nx];
                 if (neighbor.alive) {
                     neighbor.color = color;
+                    neighbor.mutated = true;
                     neighbor.element.style.background = color;
                 }
             }
@@ -223,6 +265,25 @@ function spreadMutation(x, y, color) {
     }
 }
 
+function buyMutation() {
+    if (flowers >= mutationCost) {
+        flowers -= mutationCost;
+        mutationChance += 0.05;
+        mutationCost = Math.floor(mutationCost * 1.7);
+        updateUI();
+    }
+}
+
+function buySpread() {
+    if (flowers >= spreadCost) {
+        flowers -= spreadCost;
+        spreadRange += 1;
+        spreadCost = Math.floor(spreadCost * 1.8);
+        updateUI();
+    }
+}
+
+updateUI();
 setPattern("sweden");
 </script>
 
