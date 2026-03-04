@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Flower Game</title>
+    <style>
+        body {
+            background: #111;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        #game {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 2px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .flower {
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .empty {
+            background: #222;
+            cursor: default;
+        }
+
+        #controls {
+            margin-top: 20px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #333;
+            color: white;
+        }
+
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+<h1>The Flower Game 🌼</h1>
+<div id="game"></div>
+
+<div id="controls">
+    <button onclick="setPattern('sweden')">Sweden</button>
+    <button onclick="setPattern('france')">France</button>
+    <button onclick="setPattern('germany')">Germany</button>
+    <button onclick="setPattern('japan')">Japan</button>
+    <button onclick="setPattern('italy')">Italy</button>
+    <button onclick="setPattern('poland')">Poland</button>
+    <button onclick="setPattern('ukraine')">Ukraine</button>
+    <button onclick="setPattern('norway')">Norway</button>
+</div>
+
+<script>
+const size = 15;
+const mutationChance = 0.15;
+const cooldownTime = 2000;
+const spreadRange = 1;
+
+const game = document.getElementById("game");
+let grid = [];
+
+function createEmptyGrid() {
+    game.innerHTML = "";
+    grid = [];
+
+    for (let y = 0; y < size; y++) {
+        grid[y] = [];
+        for (let x = 0; x < size; x++) {
+            const div = document.createElement("div");
+            div.classList.add("flower");
+            div.onclick = () => harvest(x, y);
+            game.appendChild(div);
+
+            grid[y][x] = {
+                element: div,
+                color: "#000",
+                alive: true
+            };
+        }
+    }
+}
+
+function setPattern(type) {
+    createEmptyGrid();
+
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            let color = "#000";
+
+            switch(type) {
+                case "sweden":
+                    color = "#005293";
+                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
+                        color = "#FECB00";
+                    break;
+
+                case "france":
+                    if (x < size/3) color = "#0055A4";
+                    else if (x < 2*size/3) color = "#FFFFFF";
+                    else color = "#EF4135";
+                    break;
+
+                case "germany":
+                    if (y < size/3) color = "#000000";
+                    else if (y < 2*size/3) color = "#DD0000";
+                    else color = "#FFCE00";
+                    break;
+
+                case "japan":
+                    color = "#FFFFFF";
+                    let center = size/2;
+                    let dx = x - center;
+                    let dy = y - center;
+                    if (dx*dx + dy*dy < 16)
+                        color = "#BC002D";
+                    break;
+
+                case "italy":
+                    if (x < size/3) color = "#009246";
+                    else if (x < 2*size/3) color = "#FFFFFF";
+                    else color = "#CE2B37";
+                    break;
+
+                case "poland":
+                    if (y < size/2) color = "#FFFFFF";
+                    else color = "#DC143C";
+                    break;
+
+                case "ukraine":
+                    if (y < size/2) color = "#0057B7";
+                    else color = "#FFD700";
+                    break;
+
+                case "norway":
+                    color = "#BA0C2F";
+                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
+                        color = "#FFFFFF";
+                    if (x === Math.floor(size/2) || y === Math.floor(size/2))
+                        if (x === Math.floor(size/2) || y === Math.floor(size/2))
+                            color = "#00205B";
+                    break;
+            }
+
+            grid[y][x].color = color;
+            grid[y][x].element.style.background = color;
+        }
+    }
+}
+
+function harvest(x, y) {
+    const cell = grid[y][x];
+    if (!cell.alive) return;
+
+    cell.alive = false;
+    cell.element.classList.add("empty");
+    cell.element.style.background = "#222";
+
+    setTimeout(() => regrow(x, y), cooldownTime);
+}
+
+function regrow(x, y) {
+    const cell = grid[y][x];
+    cell.alive = true;
+
+    let newColor = cell.color;
+
+    if (Math.random() < mutationChance) {
+        newColor = randomColor();
+        spreadMutation(x, y, newColor);
+    }
+
+    cell.color = newColor;
+    cell.element.classList.remove("empty");
+    cell.element.style.background = newColor;
+}
+
+function randomColor() {
+    const colors = [
+        "#ff4d4d",
+        "#4dff4d",
+        "#4d4dff",
+        "#ff66ff",
+        "#66ffff",
+        "#ffa64d"
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function spreadMutation(x, y, color) {
+    for (let dy = -spreadRange; dy <= spreadRange; dy++) {
+        for (let dx = -spreadRange; dx <= spreadRange; dx++) {
+            let nx = x + dx;
+            let ny = y + dy;
+
+            if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
+                const neighbor = grid[ny][nx];
+                if (neighbor.alive) {
+                    neighbor.color = color;
+                    neighbor.element.style.background = color;
+                }
+            }
+        }
+    }
+}
+
+setPattern("sweden");
+</script>
+
+</body>
+</html>
